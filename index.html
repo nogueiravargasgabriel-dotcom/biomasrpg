@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guardiões dos Biomas — RPG Educacional de Conservação</title>
+<style>
+/* ===================== VARIÁVEIS DE TEMA (ECO-CYBERPUNK GAMIFICADO) ===================== */
+:root{
+  --bg:#090d16; --painel:#131b2e; --painel-claro:#1c2742; --borda:#2a395c;
+  --texto:#f0f6fc; --sec:#94a3b8;
+  --verde:#2ea043; --neon:#39ff14; --ambar:#fbbf24; --ciano:#22d3ee; --verm:#ff3b5c; --roxo:#c084fc;
+  --mono:"Fira Code","Courier New",Consolas,monospace;
+  --leitura:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:radial-gradient(circle at 50% 0%, #16243d 0%, var(--bg) 75%);
+  color:var(--texto);font-family:var(--leitura);line-height:1.5;min-height:100vh;overflow-x:hidden;
+}
+h1,h2,h3,h4,.mono,button,label,.stat,.badge{font-family:var(--mono)}
+h1{color:var(--neon);font-size:1.35rem;letter-spacing:.04em;text-shadow:0 0 12px #39ff1455}
+h2{font-size:1.02rem;color:var(--neon);margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:.4rem}
+h3{font-size:.88rem;color:var(--ciano);margin:.7rem 0 .35rem}
+
+.painel{
+  background:linear-gradient(180deg, var(--painel) 0%, #0f1626 100%);
+  border:1px solid var(--borda);border-radius:12px;padding:1.1rem;
+  box-shadow:0 8px 24px rgba(0,0,0,0.45);position:relative;
+}
+button{
+  background:#0d1322;color:var(--texto);border:1.5px solid var(--borda);
+  border-radius:8px;padding:.55rem .8rem;cursor:pointer;font-size:.84rem;
+  transition:all .18s ease;
+}
+button:hover:not(:disabled){
+  border-color:var(--neon);color:var(--neon);
+  transform:translateY(-2px);box-shadow:0 4px 12px rgba(57,255,20,0.2);
+}
+button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+button.sel{
+  border-color:var(--neon);color:#fff;
+  background:linear-gradient(135deg, #153820 0%, #0f2417 100%);
+  box-shadow:0 0 14px rgba(57,255,20,0.3);
+}
+button.primario{
+  background:linear-gradient(135deg, #2ea043 0%, #238636 100%);
+  color:#fff;border-color:var(--neon);font-weight:bold;font-size:1rem;
+  padding:.8rem 1.2rem;width:100%;margin-top:.6rem;
+  box-shadow:0 0 15px rgba(57,255,20,0.35);
+}
+button.primario:hover{
+  background:linear-gradient(135deg, #39c251 0%, #2ea043 100%);
+  color:#051408;
+}
+input[type=text]{
+  background:#090d16;border:1.5px solid var(--borda);color:var(--texto);
+  padding:.65rem .8rem;border-radius:8px;width:100%;font-family:var(--mono);font-size:.95rem;
+}
+input[type=text]:focus{outline:none;border-color:var(--ciano);box-shadow:0 0 10px rgba(34,211,238,0.25)}
+.sec{color:var(--sec);font-size:.85rem}
+.oculto{display:none!important}
+
+header.topo{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:.8rem 1.4rem;border-bottom:1px solid var(--borda);
+  background:rgba(13, 19, 34, 0.85);backdrop-filter:blur(8px);
+}
+.badge{
+  display:inline-block;padding:.15rem .5rem;border-radius:99px;font-size:.72rem;
+  font-weight:bold;border:1px solid currentColor;
+}
+
+/* ===================== ANIMAÇÕES DE PIORA AMBIENTAL / ALERTA ===================== */
+#vinhetaAlerta{
+  position:fixed;inset:0;pointer-events:none;z-index:90;opacity:0;
+  background:radial-gradient(circle, transparent 55%, rgba(255, 59, 92, 0.45) 100%);
+  box-shadow:inset 0 0 60px rgba(255, 59, 92, 0.7);
+  transition:opacity .3s ease;
+}
+#vinhetaAlerta.ativa{animation:pulsoPerigo 1.1s ease-out}
+@keyframes pulsoPerigo{
+  0%{opacity:0} 20%{opacity:1} 50%{opacity:.5} 75%{opacity:.95} 100%{opacity:0}
+}
+
+#bannerDegradacao{
+  position:fixed;top:68px;left:50%;transform:translateX(-50%) translateY(-30px);
+  z-index:95;pointer-events:none;opacity:0;
+  background:linear-gradient(90deg, #590d1b, #9e142f, #590d1b);
+  border:2px solid var(--verm);color:#fff;padding:.6rem 1.3rem;border-radius:99px;
+  font-family:var(--mono);font-weight:bold;font-size:.9rem;
+  box-shadow:0 8px 25px rgba(255,59,92,0.6);
+  display:flex;align-items:center;gap:.6rem;
+}
+#bannerDegradacao.mostrar{animation:surgirBanner 2.4s ease forwards}
+@keyframes surgirBanner{
+  0%{opacity:0;transform:translateX(-50%) translateY(-30px) scale(0.9)}
+  15%{opacity:1;transform:translateX(-50%) translateY(0) scale(1.03)}
+  80%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+  100%{opacity:0;transform:translateX(-50%) translateY(-20px) scale(0.95)}
+}
+
+body.tremor-ambiental{animation:tremerTela .55s cubic-bezier(.36,.07,.19,.97) both}
+@keyframes tremerTela{
+  10%, 90%{transform:translate3d(-3px, 1px, 0)}
+  20%, 80%{transform:translate3d(5px, -2px, 0)}
+  30%, 50%, 70%{transform:translate3d(-6px, 2px, 0)}
+  40%, 60%{transform:translate3d(6px, -1px, 0)}
+}
+
+.painel.alerta-piora{animation:flashPainelVermelho 1s ease}
+@keyframes flashPainelVermelho{
+  0%,100%{border-color:var(--borda);box-shadow:0 8px 24px rgba(0,0,0,0.45)}
+  30%,70%{border-color:var(--verm);box-shadow:0 0 25px rgba(255,59,92,0.55)}
+}
+
+.flutuante-delta{
+  display:inline-block;margin-left:.5rem;font-family:var(--mono);font-weight:bold;
+  font-size:.82rem;animation:subirDelta 1.6s ease-out forwards;
+}
+.flutuante-delta.ruim{color:var(--verm)}
+.flutuante-delta.bom{color:var(--neon)}
+@keyframes subirDelta{
+  0%{opacity:1;transform:translateY(0) scale(1.1)}
+  100%{opacity:0;transform:translateY(-14px) scale(0.95)}
+}
+
+/* ===================== TELA 1: GUIA DE AÇÕES + CRIAÇÃO ===================== */
+#criacao{max-width:1240px;margin:1rem auto;padding:0 1rem;display:flex;flex-direction:column;gap:1.1rem}
+
+/* Guia de Ações na Primeira Tela */
+.guia-inicial{
+  border-color:var(--ciano);
+  background:linear-gradient(180deg, #122238 0%, #0d1626 100%);
+}
+.grade-acoes-preview{
+  display:grid;grid-template-columns:repeat(auto-fit, minmax(205px, 1fr));gap:.75rem;margin-top:.7rem;
+}
+.card-acao-preview{
+  background:#090e1a;border:1.5px solid var(--borda);border-radius:10px;padding:.75rem;
+  display:flex;flex-direction:column;gap:.35rem;transition:transform .2s, border-color .2s;
+}
+.card-acao-preview:hover{transform:translateY(-3px);border-color:var(--ciano)}
+.card-acao-preview .topo-card{display:flex;justify-content:space-between;align-items:center}
+.card-acao-preview .icone-acao{font-size:1.35rem}
+.card-acao-preview h4{color:#fff;font-size:.9rem}
+.card-acao-preview p{font-size:.8rem;color:var(--sec);line-height:1.35}
+.tag-attr{
+  margin-top:auto;padding-top:.35rem;font-family:var(--mono);font-size:.73rem;
+  display:flex;align-items:center;gap:.3rem;
+}
+
+/* Grid Principal de Criação */
+.criacao-grid{display:grid;grid-template-columns:1fr 330px;gap:1.1rem;align-items:start}
+.grupo{margin-bottom:1.15rem}
+.grupo > label{display:block;font-size:.9rem;color:var(--ciano);margin-bottom:.4rem;font-weight:bold}
+
+/* Cartões Visuais de Escolha (Origem e Arquétipo) */
+.cards-escolha{display:grid;grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:.65rem}
+.card-opcao{
+  text-align:left;padding:.75rem;border-radius:10px;background:#0a101d;
+  border:1.5px solid var(--borda);cursor:pointer;display:flex;flex-direction:column;gap:.3rem;
+}
+.card-opcao .titulo-card{font-weight:bold;font-size:.88rem;color:#fff;display:flex;align-items:center;gap:.4rem}
+.card-opcao .desc-card{font-size:.78rem;color:var(--sec);font-family:var(--leitura)}
+.card-opcao .efeito-card{
+  margin-top:.25rem;font-size:.74rem;color:var(--ambar);font-family:var(--mono);
+  background:rgba(251,191,36,0.1);padding:.25rem .45rem;border-radius:6px;border-left:2px solid var(--ambar);
+}
+.card-opcao.sel{
+  border-color:var(--neon);
+  background:linear-gradient(145deg, #132c1b 0%, #0b1919 100%);
+  box-shadow:0 0 15px rgba(57,255,20,0.25);
+}
+.card-opcao.sel .titulo-card{color:var(--neon)}
+
+.opcoes{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.3rem}
+
+/* Distribuidor de Atributos Didático */
+.attr-card{
+  background:#0a101d;border:1px solid var(--borda);border-radius:10px;
+  padding:.7rem .85rem;margin-bottom:.55rem;
+}
+.attr-topo{display:flex;justify-content:space-between;align-items:center;gap:.5rem}
+.attr-info strong{font-family:var(--mono);font-size:.9rem;color:#fff}
+.attr-info small{display:block;color:var(--sec);font-size:.77rem;margin-top:.1rem}
+.attr-controles{display:flex;align-items:center;gap:.4rem}
+.attr-controles button{width:34px;height:34px;padding:0;font-size:1.1rem;font-weight:bold}
+.attr-val{width:32px;text-align:center;font-family:var(--mono);color:var(--neon);font-size:1.2rem;font-weight:bold}
+.attr-pip-bar{display:flex;gap:4px;margin-top:.45rem}
+.attr-pip{flex:1;height:6px;border-radius:3px;background:#1c263b;transition:background .2s}
+.attr-pip.ativo{background:var(--neon);box-shadow:0 0 6px var(--neon)}
+.attr-pip.bonus{background:var(--ciano);box-shadow:0 0 6px var(--ciano)}
+
+/* ===================== LAYOUT 3 COLUNAS DO JOGO ===================== */
+#jogo{display:grid;grid-template-columns:280px 1fr 310px;gap:1rem;padding:1rem;max-width:1520px;margin:auto}
+@media(max-width:1050px){#jogo,.criacao-grid{grid-template-columns:1fr}}
+.col{display:flex;flex-direction:column;gap:1rem}
+.avatar-box{
+  display:flex;justify-content:center;align-items:center;
+  background:radial-gradient(circle, #1a2942 0%, #090d16 100%);
+  border-radius:10px;padding:.75rem;border:1px solid var(--borda);
+}
+.stat{display:flex;justify-content:space-between;font-size:.85rem;padding:.3rem 0;border-bottom:1px dashed #1f2b45}
+.stat b{color:var(--neon)}
+.item{display:block;width:100%;text-align:left;margin-bottom:.4rem;font-size:.8rem}
+.item small{display:block;color:var(--sec);font-family:var(--leitura)}
+#descItem{font-size:.8rem;color:var(--sec);margin-top:.4rem;border-left:3px solid var(--ciano);padding-left:.6rem;background:#0a101d;padding:.5rem;border-radius:0 6px 6px 0}
+
+/* Painel de turno fixo */
+#menuTurno{position:sticky;top:0;z-index:5;border-color:var(--neon)}
+.pa{display:inline-block;width:18px;height:18px;border-radius:50%;border:2px solid var(--neon);margin-left:4px;vertical-align:middle}
+.pa.cheio{background:var(--neon);box-shadow:0 0 8px var(--neon)}
+.acoes{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:.5rem;margin-top:.65rem}
+.acoes button{text-align:left;padding:.55rem .65rem}
+.acoes button strong{display:block;font-size:.83rem}
+.acoes button small{display:block;color:var(--sec);font-size:.71rem;margin-top:2px}
+
+/* Terminal narrativo */
+#log{
+  height:390px;overflow-y:auto;scroll-behavior:smooth;
+  background:#080c14;border:1px solid var(--borda);border-radius:10px;
+  padding:.9rem;font-size:.92rem;
+}
+#log p{margin-bottom:.6rem;animation:surgir .3s}
+@keyframes surgir{from{opacity:0;transform:translateY(5px)}to{opacity:1}}
+.l-sis{color:var(--sec);font-family:var(--mono);font-size:.8rem}
+.l-npc{border-left:3px solid var(--ambar);padding:.35rem .65rem;background:rgba(251,191,36,0.06);border-radius:0 6px 6px 0}
+.l-npc b{color:var(--ambar)}
+.l-bom{color:var(--neon)}
+.l-ruim{color:var(--verm);background:rgba(255,59,92,0.08);border-left:3px solid var(--verm);padding:.3rem .55rem;border-radius:0 6px 6px 0}
+.l-agua{color:var(--ciano)}
+.l-alerta{color:var(--ambar);border-left:3px solid var(--ambar);padding-left:.5rem}
+.l-eco{color:var(--ciano);font-family:var(--mono);border-top:1px dashed var(--borda);padding-top:.45rem;font-weight:bold}
+#escolhas{display:flex;flex-direction:column;gap:.45rem;margin-top:.65rem}
+#escolhas button{text-align:left;line-height:1.4}
+
+/* ===================== DADO D20 ANIMADO ===================== */
+#areaDado{display:flex;align-items:center;gap:1rem;min-height:92px}
+#dado{
+  width:72px;height:72px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:1.65rem;font-weight:bold;
+  background:#090d16;border:2px solid var(--ciano);
+  clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);color:var(--ciano);
+}
+#dado.rolando{animation:girar .8s ease-out}
+@keyframes girar{
+  0%{transform:perspective(300px) rotateX(0) rotateY(0)}
+  25%{transform:perspective(300px) rotateX(180deg) rotateY(90deg) scale(1.1)}
+  50%{transform:perspective(300px) rotateX(360deg) rotateY(200deg) scale(0.95)}
+  75%{transform:perspective(300px) rotateX(540deg) rotateY(300deg) scale(1.08)}
+  100%{transform:perspective(300px) rotateX(720deg) rotateY(360deg) scale(1)}
+}
+#dado.sucesso{border-color:var(--neon);color:var(--neon);animation:piscaV .5s 3}
+#dado.falha{border-color:var(--verm);color:var(--verm);animation:piscaR .5s 3}
+@keyframes piscaV{50%{background:#39ff1444}} @keyframes piscaR{50%{background:#ff3b5c44}}
+#textoDado{font-family:var(--mono);font-size:.83rem}
+
+/* ===================== PAINEL DO BIOMA E TENDÊNCIAS ===================== */
+.barra{height:18px;background:#080c14;border:1px solid var(--borda);border-radius:9px;overflow:hidden;margin:.3rem 0;position:relative}
+.barra>div{height:100%;transition:width .6s cubic-bezier(.22,1,.36,1),background .6s}
+.barra.piorando{animation:piscarBarraRuim .8s ease 2}
+@keyframes piscarBarraRuim{
+  50%{border-color:var(--verm);box-shadow:0 0 14px rgba(255,59,92,0.75)}
+}
+
+.termo{display:flex;align-items:center;gap:.75rem;margin-top:.3rem}
+.termo-tubo{width:24px;height:130px;background:#080c14;border:1px solid var(--borda);border-radius:12px;position:relative;overflow:hidden}
+.termo-tubo div{position:absolute;bottom:0;width:100%;transition:height .6s;background:linear-gradient(to top,var(--ambar),var(--verm))}
+.monitor{display:flex;gap:.4rem;margin-top:.45rem}
+.monitor span{flex:1;text-align:center;padding:.45rem;border:1px solid var(--borda);border-radius:6px;font-family:var(--mono);font-size:.72rem;color:var(--sec)}
+.monitor span.ativo{border-color:var(--neon);color:var(--neon);background:rgba(57,255,20,0.08)}
+.monitor span.ativo.eco{border-color:var(--verm);color:var(--verm);background:rgba(255,59,92,0.12)}
+#miniBiomas>div{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.78rem;padding:.2rem 0;border-bottom:1px dashed #1b263d}
+.objetivo{font-size:.82rem;margin:.25rem 0}
+.objetivo.ok{color:var(--neon)}
+
+/* ===================== MODAL E DOSSIÊ ===================== */
+#modal{position:fixed;inset:0;background:#000b;display:flex;align-items:center;justify-content:center;z-index:50;padding:1rem}
+#modal .painel{max-width:520px;width:100%}
+#dossie{max-width:1000px;margin:1rem auto;padding:0 1rem}
+#dossie table{width:100%;border-collapse:collapse;font-size:.85rem;margin:.5rem 0}
+#dossie td,#dossie th{border:1px solid var(--borda);padding:.4rem;text-align:left}
+#dossie section{margin-bottom:1.1rem}
+@media print{
+  body{background:#fff;color:#000} .nao-imprimir,#vinhetaAlerta,#bannerDegradacao{display:none!important}
+  .painel{background:#fff;border-color:#999;color:#000;box-shadow:none} h1,h2,h3{color:#000;text-shadow:none}
+  #dossie td,#dossie th{border-color:#999}
+}
+</style>
+</head>
+<body>
+
+<!-- Camadas visuais de feedback quando o meio ambiente piora -->
+<div id="vinhetaAlerta"></div>
+<div id="bannerDegradacao">⚠️ ALERTA AMBIENTAL: <span id="txtBannerDegradacao">Tendência ecológica piorou!</span></div>
+
+<header class="topo">
+  <h1>🌱 GUARDIÕES DOS BIOMAS <span class="sec">// Missão 7º Ano</span></h1>
+  <span class="sec mono" id="relogio">Sessão: 00:00</span>
+</header>
+
+<main>
+<!-- ================= TELA 1: COMO JOGAR (AÇÕES) + CREDENCIAMENTO ================= -->
+<section id="criacao">
+
+  <!-- PASSO 0: Apresentação clara das opções de ação antes de iniciar o jogo -->
+  <div class="painel guia-inicial">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem">
+      <h2>🎮 Como Funciona a Missão: Suas 5 Ações de Campo</h2>
+      <span class="badge" style="color:var(--ciano)">Você terá 2 Pontos de Ação (PA) por rodada</span>
+    </div>
+    <p class="sec">Neste RPG não existe luta física! Você protege os 6 biomas brasileiros investigando problemas ambientais, conversando com moradores e organizando mutirões. Veja o que você poderá fazer em cada turno e escolha seus atributos de acordo:</p>
+
+    <div class="grade-acoes-preview">
+      <div class="card-acao-preview">
+        <div class="topo-card"><span class="icone-acao">🔍</span><span class="badge" style="color:var(--neon)">Custo: 1 PA</span></div>
+        <h4>1. Investigar</h4>
+        <p>Analisa a água, o solo, pegadas e mapas para descobrir a verdadeira causa do problema ambiental e liberar argumentos científicos.</p>
+        <div class="tag-attr" style="color:var(--ciano)">⚡ Usa: <b>Ecologia &amp; Ciência</b></div>
+      </div>
+
+      <div class="card-acao-preview">
+        <div class="topo-card"><span class="icone-acao">💬</span><span class="badge" style="color:var(--ambar)">Custo: 1 PA</span></div>
+        <h4>2. Dialogar</h4>
+        <p>Conversa com Mentores (para ganhar equipamentos) ou com moradores e produtores para firmar Acordos de Paz e Conservação.</p>
+        <div class="tag-attr" style="color:var(--ambar)">⚡ Usa: <b>Carisma &amp; Negociação</b></div>
+      </div>
+
+      <div class="card-acao-preview">
+        <div class="topo-card"><span class="icone-acao">🎒</span><span class="badge" style="color:var(--roxo)">Custo: 1 PA</span></div>
+        <h4>3. Usar Item</h4>
+        <p>Ativa equipamentos da sua mochila para ganhar <b>+3 de bônus</b> no próximo dado ou reduzir imediatamente a ameaça de um bioma.</p>
+        <div class="tag-attr" style="color:var(--roxo)">⚡ Usa: <b>Mochila / Equipamentos</b></div>
+      </div>
+
+      <div class="card-acao-preview">
+        <div class="topo-card"><span class="icone-acao">🤝</span><span class="badge" style="color:var(--verm)">Custo: 2 PA</span></div>
+        <h4>4. Mobilização</h4>
+        <p>Convoca brigadistas, moradores e cooperativas para um grande mutirão que derruba a Ameaça e a Tensão de uma só vez!</p>
+        <div class="tag-attr" style="color:var(--neon)">⚡ Usa: <b>Gestão &amp; Ação Prática</b></div>
+      </div>
+
+      <div class="card-acao-preview">
+        <div class="topo-card"><span class="icone-acao">🧭</span><span class="badge" style="color:var(--sec)">Custo: 1 PA</span></div>
+        <h4>5. Avançar</h4>
+        <p>Viaja para o próximo setor do bioma assim que você tiver investigado a pista local e recebido o equipamento do Mentor.</p>
+        <div class="tag-attr" style="color:var(--sec)">⚡ Requisito: <b>Objetivos de Campo</b></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASSO 1: Criação de Personagem Explicativa -->
+  <div class="criacao-grid">
+    <div class="painel">
+      <h2>🧑‍🔬 Monte seu(sua) Pesquisador(a)</h2>
+
+      <div class="grupo">
+        <label for="nome">1. Nome ou Codinome de Campo</label>
+        <input type="text" id="nome" maxlength="24" placeholder="Ex.: Lobo-Guará, Sofia, Guardião Caio...">
+      </div>
+
+      <div class="grupo">
+        <label>2. Qual é a sua Origem? <span class="sec" style="font-weight:normal">(Define seu bônus de conversa e de mutirão)</span></label>
+        <div class="cards-escolha" id="optOrigem"></div>
+      </div>
+
+      <div class="grupo">
+        <label>3. Escolha seu Arquétipo (Profissão) <span class="sec" style="font-weight:normal">(Dá +1 ponto extra e seu 1º equipamento)</span></label>
+        <div class="cards-escolha" id="optClasse"></div>
+      </div>
+
+      <div class="grupo">
+        <label>4. Distribua seus Atributos — Pontos restantes: <span class="badge" id="pontosRest" style="color:var(--neon);font-size:.9rem">10</span></label>
+        <p class="sec" style="margin-bottom:.5rem">Quanto maior o número em um atributo, maior será a soma no seu dado de 20 lados (D20) quando você fizer aquela ação!</p>
+        <div id="attrsCriacao"></div>
+      </div>
+
+      <div class="grupo" style="background:#0a101d;padding:.8rem;border-radius:10px;border:1px solid var(--borda)">
+        <label style="margin-bottom:.5rem">5. Estilo Visual do Avatar</label>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.6rem">
+          <div><span class="sec">Corte de Cabelo:</span><div class="opcoes" id="optCabelo"></div></div>
+          <div><span class="sec">Cor do Cabelo:</span><div class="opcoes" id="optCor"></div></div>
+          <div><span class="sec">Acessório de Campo:</span><div class="opcoes" id="optAcess"></div></div>
+        </div>
+      </div>
+
+      <button class="primario" id="btnIniciar">▶ INICIAR EXPEDIÇÃO PELOS BIOMAS</button>
+      <p class="l-alerta" id="avisoCriacao" style="margin-top:.5rem"></p>
+    </div>
+
+    <!-- Coluna lateral: Pré-visualização em tempo real do personagem -->
+    <div class="painel" style="position:sticky;top:1rem">
+      <h2>🪪 Crachá da Expedição</h2>
+      <div class="avatar-box" id="avatarPreview"></div>
+      <div id="resumoFichaCriacao" style="margin-top:.75rem;font-size:.84rem"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TELA 2: JOGO ================= -->
+<section id="jogo" class="oculto">
+  <!-- Coluna esquerda: perfil e inventário -->
+  <aside class="col">
+    <div class="painel">
+      <h2>🧑‍🔬 Perfil</h2>
+      <div class="avatar-box" id="avatarJogo" title="Clique para acenar"></div>
+      <p class="mono" style="margin-top:.5rem;font-size:1rem"><b id="pNome"></b></p>
+      <p class="sec" id="pClasse"></p>
+      <h3>Atributos (Bônus no D20)</h3>
+      <div id="pAttrs"></div>
+      <div id="pSabedoria"></div>
+    </div>
+    <div class="painel">
+      <h2>🎒 Mochila de Campo</h2>
+      <div id="inventario"></div>
+      <div id="descItem">Clique em um item para ler como ele funciona na ciência real.</div>
+    </div>
+  </aside>
+
+  <!-- Coluna central: turno, log, dado -->
+  <section class="col">
+    <div class="painel" id="menuTurno">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem;align-items:center">
+        <h2 style="margin:0">⚡ Seu Turno — Escolha sua Ação</h2>
+        <span class="mono">Rodada <b id="tRodada">1</b>/<span id="tMaxRod">5</span> · PA: <span id="tPA"></span></span>
+      </div>
+      <p class="sec" style="font-size:.76rem;margin-top:.2rem">Ciclo da Rodada: ① Você usa 2 PA → ② O Ecossistema reage → ③ Nova rodada. Termine com Integridade &gt; 60%!</p>
+      <div class="acoes">
+        <button id="aInvestigar"><strong>🔍 Investigar</strong><small>1 PA · Usa Ecologia</small></button>
+        <button id="aDialogo"><strong>💬 Dialogar</strong><small>1 PA · Usa Carisma</small></button>
+        <button id="aItem"><strong>🎒 Usar Item</strong><small>1 PA · Bônus +3 / Efeito</small></button>
+        <button id="aMobilizar"><strong>🤝 Mobilização</strong><small>2 PA · Usa Gestão</small></button>
+        <button id="aAvancar"><strong>🧭 Avançar</strong><small>1 PA · Mudar setor</small></button>
+      </div>
+    </div>
+    <div class="painel">
+      <div id="log" aria-live="polite"></div>
+      <div id="escolhas"></div>
+    </div>
+    <div class="painel" id="areaDado">
+      <div id="dado">20</div>
+      <div id="textoDado" class="sec">Escolha uma ação acima para rolar o dado de 20 lados (D20)…</div>
+    </div>
+  </section>
+
+  <!-- Coluna direita: bioma e risco -->
+  <aside class="col">
+    <div class="painel" id="painelBiomaStatus">
+      <h2 id="bNome">Bioma</h2>
+      <p class="sec" id="bSetor"></p>
+
+      <h3>🌿 Integridade Ecológica <span id="bIntTxt"></span><span id="deltaInt"></span></h3>
+      <div class="barra" id="barraIntWrap"><div id="bInt"></div></div>
+
+      <h3>🔥 Ameaça Ambiental <span id="bAmeTxt"></span><span id="deltaAme"></span></h3>
+      <div class="barra" id="barraAmeWrap"><div id="bAme" style="background:var(--verm)"></div></div>
+
+      <h3>🗣️ Tensão Socioecológica <span id="deltaTen"></span></h3>
+      <div class="termo">
+        <div class="termo-tubo"><div id="bTen"></div></div>
+        <div>
+          <span class="mono" id="bTenTxt" style="display:block;font-weight:bold"></span>
+          <small class="sec">Se subir demais, moradores param de cooperar e o bioma perde mais integridade.</small>
+        </div>
+      </div>
+
+      <h3>Monitor de Turno</h3>
+      <div class="monitor"><span id="mJog">SUA VEZ DE AGIR</span><span id="mEco">REAÇÃO DO AMBIENTE</span></div>
+    </div>
+    <div class="painel">
+      <h2>📋 Objetivos de Campo</h2>
+      <div id="objetivos"></div>
+    </div>
+    <div class="painel mini-biomas">
+      <h2>🗺️ Mapa da Expedição</h2>
+      <div id="miniBiomas"></div>
+    </div>
+  </aside>
+</section>
+
+<!-- ================= TELA 3: DOSSIÊ ================= -->
+<section id="dossie" class="oculto"></section>
+</main>
+
+<!-- Modal genérico -->
+<div id="modal" class="oculto"><div class="painel" id="modalConteudo"></div></div>
+
+<script>
+/* =====================================================================
+   GUARDIÕES DOS BIOMAS — RPG educacional single-file (Versão 7º Ano)
+   ===================================================================== */
+
+const GameState = {
+  personagem: {
+    nome: '', origem: null, classe: null,
+    avatar: { cabelo: 'curto', cor: 'castanho', acessorio: 'chapeu' },
+    atributos: { eco: 0, car: 0, ges: 0 },
+    inventario: [],
+    sabedoria: 0
+  },
+  biomaAtual: 0,
+  rodada: 1,
+  pa: 2,
+  paDivida: 0,
+  bonusProximo: 0,
+  bonusAttr: null,
+  integridade: {},
+  ameaca: 0, tensao: 0,
+  progresso: {},
+  npcFechado: {},
+  confianca: {},
+  acordos: [],
+  aprendizados: [],
+  historicoRolagens: [],
+  historicoEventos: [],
+  dialogosDesbloqueados: [],
+  pistas: {},
+  inicioSessao: Date.now(),
+  emEvento: false
+};
+
+/* ---------- DADOS DE CRIAÇÃO COM EXPLICAÇÕES PRÁTICAS ---------- */
+const ORIGENS = {
+  universitario: {
+    icone: '🔬',
+    nome: 'Jovem Cientista / Universitário',
+    desc: 'Estuda dados, mapas e análises de laboratório.',
+    efeito: '💬 Nas conversas: usa dados científicos para convencer engenheiros, técnicos e produtores.'
+  },
+  tradicional: {
+    icone: '🌿',
+    nome: 'Morador(a) Tradicional / Nativo',
+    desc: 'Cresceu ouvindo os mais velhos e conhece os sinais da natureza.',
+    efeito: '💬 Nas conversas: gera empatia imediata com líderes ribeirinhos, quilombolas e sertanejos.'
+  },
+  voluntario: {
+    icone: '📢',
+    nome: 'Ativista / Voluntário Estudantil',
+    desc: 'Organiza mutirões, redes solidárias e projetos escolares.',
+    efeito: '🤝 Na ação Mobilização: reduz a dificuldade do dado (CD cai de 14 para 12)!'
+  }
+};
+
+const CLASSES = {
+  biologo: {
+    icone: '🧪',
+    nome: 'Biólogo(a) de Campo',
+    foco: 'eco',
+    item: 'kitDiag',
+    desc: 'Especialista em descobrir poluentes, estudar plantas e animais.',
+    efeito: '🎁 Ganha +1 em Ecologia (facilitando 🔍 Investigar) + Kit de Água e Solo.'
+  },
+  articulador: {
+    icone: '🎙️',
+    nome: 'Articulador(a) Comunitário(a)',
+    foco: 'car',
+    item: 'radio',
+    desc: 'Especialista em escuta ativa, diálogo e acordos pacíficos.',
+    efeito: '🎁 Ganha +1 em Carisma (facilitando 💬 Dialogar) + Rádio Comunicador.'
+  },
+  guarda: {
+    icone: '🧭',
+    nome: 'Guarda-Parque / Brigadista',
+    foco: 'ges',
+    item: 'gps',
+    desc: 'Especialista em proteção prática, aceiros contra fogo e resgate.',
+    efeito: '🎁 Ganha +1 em Gestão (facilitando 🤝 Mobilização) + GPS de Precisão.'
+  }
+};
+
+const ATTR_NOMES = {
+  eco: 'Ecologia & Ciência',
+  car: 'Carisma & Negociação',
+  ges: 'Gestão & Ação Prática'
+};
+
+const ATTR_AJUDA = {
+  eco: 'Usado na ação 🔍 Investigar e em argumentos científicos nos diálogos.',
+  car: 'Usado na ação 💬 Dialogar para acalmar conflitos e firmar Acordos.',
+  ges: 'Usado na ação 🤝 Mobilização Coletiva e para conter desastres rápidos.'
+};
+
+const CABELOS = { curto: 'Curto', ondulado: 'Ondulado', trancas: 'Tranças', coque: 'Coque de campo' };
+const CORES = { castanho: '#6b4423', preto: '#1a1a1a', ruivo: '#b5471b', grisalho: '#b8b8b8', verde: '#39ff14' };
+const NOMES_COR = { castanho: 'Castanho', preto: 'Preto', ruivo: 'Ruivo', grisalho: 'Grisalho', verde: 'Verde Folha' };
+const ACESS = { chapeu: 'Chapéu de palha', oculos: 'Óculos de proteção', bandana: 'Bandana típica' };
+
+/* ---------- CATÁLOGO DE ITENS ---------- */
+const ITENS = {
+  kitDiag:  { nome: 'Kit de Diagnóstico Rápido de Água e Solo', attr: 'eco', desc: 'Reagentes colorimétricos medem pH, oxigênio dissolvido, nitrato e metais pesados. Dá +3 no próximo teste de Ecologia.' },
+  radio:    { nome: 'Rádio Comunicador Comunitário', attr: 'car', desc: 'Rede de rádio usada por comunidades isoladas para alertas e assembleias. Dá +3 no próximo teste de Carisma.' },
+  gps:      { nome: 'Delineador de Fogo e GPS de Precisão', attr: 'ges', desc: 'Mapeia frentes de fogo e traça aceiros (faixas sem vegetação que impedem a propagação). Dá +3 no próximo teste de Gestão.' },
+  caderno:  { nome: 'Caderno de Campo Digital', attr: 'eco', passivo: true, desc: 'PASSIVO: +1 automático em todos os testes de Ecologia. Registra espécies, coordenadas e observações.' },
+  buriti:   { nome: 'Biofiltro de Fibra de Buriti', attr: 'eco', bioma: 'amazonia', desc: 'Fibras da palmeira buriti retêm sedimentos e poluentes na Amazônia (-15% Ameaça e +8% Integridade na Amazônia).' },
+  abafador: { nome: 'Abafador Tático e Sementes Nativas', attr: 'ges', bioma: 'cerrado', desc: 'Extingue chamas rasteiras e acelera a regeneração pós-fogo (-15% Ameaça e +8% Integridade no Cerrado).' },
+  biobomba: { nome: 'Biobomba Solar e Calda Biofertilizante', attr: 'ges', bioma: 'caatinga', desc: 'Bombeamento solar de cisternas e adubo orgânico para solos secos (-15% Ameaça e +8% Integridade na Caatinga).' },
+  maca:     { nome: 'Maca de Contenção e Soro Silvestre', attr: 'ges', bioma: 'pantanal', desc: 'Resgate seguro de fauna ilhada ou queimada (-15% Ameaça e +8% Integridade no Pantanal).' },
+  dispersor:{ nome: 'Dispersor de Sementes (Juçara e Ipê)', attr: 'eco', bioma: 'mata', desc: 'Lança sementes nativas em clareiras para formar corredores ecológicos (-15% Ameaça e +8% Integridade na Mata Atlântica).' },
+  extirpador:{ nome: 'Extirpador de Capim-Annoni e Guia de Forrageiras', attr: 'ges', bioma: 'pampa', desc: 'Remove a planta invasora capim-annoni e protege o campo nativo (-15% Ameaça e +8% Integridade no Pampa).' },
+  mudaBonus:{ nome: 'Muda Rara (presente de NPC)', attr: 'car', desc: 'Presente simbólico de confiança. Ao usar, reduz a Tensão Socioecológica em 15%.' }
+};
+
+/* ---------- BIOMAS, NPCS E ÁRVORES DE DIÁLOGO ---------- */
+const BIOMAS = [
+  { id: 'base', nome: 'Base de Operações (Tutorial)', setores: ['Sala de briefing'], tutorial: true,
+    intro: 'Você chega à Base de Operações. Monitores exibem mapas de calor dos seis biomas continentais do Brasil.',
+    mentor: { nome: 'Dra. Clara', papel: 'Coordenadora de Campo', item: 'caderno' } },
+  { id: 'amazonia', nome: 'Amazônia', setores: ['Igarapé do Curuá', 'Várzea da Reserva Extrativista'], ameaca: 45, tensao: 40,
+    intro: 'Rios escuros e várzeas. Ao longe, o ronco de dragas. A floresta úmida recicla vapor que vira chuva no resto do país ("rios voadores").',
+    pista: 'Análise da água revela turbidez e mercúrio acima do limite: garimpo ilegal a montante. Faixas de desmatamento recente aparecem no GPS.',
+    licao: 'A várzea é inundada sazonalmente; peixes dispersam sementes na cheia. Mercúrio do garimpo bioacumula na cadeia alimentar até os humanos.',
+    avancado: 'Rios voadores: a evapotranspiração amazônica abastece chuvas no Centro-Sul; desmatar além de ~20-25% pode levar a floresta a um ponto de não retorno.',
+    mentor: { nome: 'Mestre Bené', papel: 'Guia Ribeirinho e Mateiro', item: 'buriti',
+      fala: 'Jovem, a água conversa com quem sabe escutar. Quando o igarapé fica barrento fora da cheia, é sinal de draga rio acima.' },
+    dilema: { nome: 'Dona Raimunda', papel: 'Líder Extrativista da Reserva',
+      fala: 'Já veio muita gente de fora mandar a gente fazer isso e aquilo. A castanha e o açaí são nossa vida. O que você quer aqui?',
+      autoritario: 'Vocês precisam seguir as regras ambientais. Vou chamar a fiscalização e pronto.',
+      escuta: 'Quero ouvir primeiro: quais são os maiores problemas que a comunidade enfrenta hoje?',
+      tecnico: 'Medi mercúrio na água: o garimpo ameaça os peixes de vocês. Podemos montar juntos um dossiê de denúncia e um plano de vigilância comunitária.',
+      origem: { tradicional: 'Sou filho(a) de família tradicional também. Sei o que é ver o rio adoecer.', universitario: 'A universidade pode certificar a castanha da reserva e valorizar a floresta em pé.', voluntario: 'Conheço uma rede estudantil e de ONGs que apoia monitoramento comunitário.' },
+      acordo: 'Pacto de vigilância comunitária e denúncia do garimpo ao órgão ambiental' } },
+  { id: 'cerrado', nome: 'Cerrado', setores: ['Chapada e campo sujo', 'Vereda das nascentes'], ameaca: 50, tensao: 45,
+    intro: 'O "berço das águas": raízes profundas alimentam aquíferos que abastecem 8 das 12 grandes bacias brasileiras. Fumaça no horizonte.',
+    pista: 'Vestígios mostram fogo iniciado em três pontos à noite, na época seca tardia: indício de incêndio criminoso. Medições indicam lençol freático rebaixado nas veredas próximas aos pivôs.',
+    licao: 'Fogo natural (raios) ocorre no início das chuvas e faz parte da ecologia do Cerrado; incêndios criminosos no fim da seca são muito destrutivos.',
+    avancado: 'Manejo Integrado do Fogo (MIF): queimas prescritas no início da seca reduzem o capim seco acumulado e protegem áreas sensíveis.',
+    mentor: { nome: 'Kalunga Mayara', papel: 'Guia Quilombola e Brigadista', item: 'abafador',
+      fala: 'Meus avós queimavam pequeno, cedo, em mosaico. Fogo assim renova o capim. O que mata o Cerrado é fogo grande, fora de hora, posto de propósito.' },
+    dilema: { nome: 'Seu Antenor', papel: 'Produtor Rural e Pecuarista',
+      fala: 'Sem os pivôs de irrigação, minha safra não vinga. Tem gente que acha que todo produtor é vilão. Não é assim, não.',
+      autoritario: 'O senhor está secando as veredas e isso é crime. Vai ter que desligar os pivôs.',
+      escuta: 'Entendo que a produção sustenta sua família. Como a seca tem afetado o senhor nos últimos anos?',
+      tecnico: 'Os dados mostram o lençol baixando: sem as veredas, seus próprios poços secam. Com Integração Lavoura-Pecuária-Floresta (ILPF), o senhor ganha sombra, solo e água.',
+      origem: { tradicional: 'Meu povo convive com o Cerrado há gerações e sabe que água de vereda não volta fácil.', universitario: 'Pesquisas mostram que o sistema ILPF aumenta a renda por hectare sem secar nascentes.', voluntario: 'Existem programas de Pagamento por Serviços Ambientais que premiam quem protege nascentes.' },
+      acordo: 'Recuperação das veredas e transição gradual para ILPF' } },
+  { id: 'caatinga', nome: 'Caatinga', setores: ['Sertão do Seridó', 'Comunidade da Escola Rural'], ameaca: 50, tensao: 40,
+    intro: 'Único bioma exclusivamente brasileiro. Na seca, as árvores perdem as folhas (caducifólias) para economizar água; com a chuva, tudo reverdece rápido.',
+    pista: 'O solo está compactado e sem cobertura vegetal: excesso de pisoteio de cabras na mesma área. Manchas de solo exposto indicam desertificação.',
+    licao: 'Plantas xerófilas (mandacaru, umbuzeiro) armazenam água em caules e raízes. Cisternas captam água da chuva para a estação seca.',
+    avancado: 'Convivência com o Semiárido: estocar água em cisternas, forragem e sementes crioulas garante vida digna mesmo durante a estiagem.',
+    mentor: { nome: 'Tião do Sertão', papel: 'Guardião de Sementes Crioulas', item: 'biobomba',
+      fala: 'Semente crioula é memória viva. Ela já aprendeu a esperar a chuva. A Caatinga não é pobre, é resistente e cheia de vida.' },
+    dilema: { nome: 'Professora Zuleide', papel: 'Educadora e Líder Comunitária',
+      fala: 'As famílias precisam dos caprinos para sobreviver, mas o chão está virando areia. Não adianta proibir sem dar alternativa.',
+      autoritario: 'É preciso tirar todos os animais da área imediatamente.',
+      escuta: 'A senhora conhece as famílias melhor que ninguém. Que soluções já foram tentadas aqui?',
+      tecnico: 'O solo mostra sobrepastoreio. Podemos fazer rodízio de áreas, bancos de forragem nativa e cisternas escolares, mantendo a renda.',
+      origem: { tradicional: 'Cresci vendo como o pasto bem dividido alimenta a criação sem matar a mata branca.', universitario: 'Podemos trazer projetos científicos para recuperar o solo junto com a escola.', voluntario: 'Conheço mutirões sociais que constroem cisternas de placas com as famílias.' },
+      acordo: 'Plano agroecológico com rodízio de pasto e cisternas comunitárias' } },
+  { id: 'pantanal', nome: 'Pantanal', setores: ['Corixos da planície', 'Base de resgate de fauna'], ameaca: 55, tensao: 35,
+    intro: 'Maior planície alagável do planeta. O pulso de inundação comanda a vida: a cheia espalha nutrientes e a seca forma lagoas ricas em peixes.',
+    pista: 'Peixes com lesões e aves debilitadas: resíduos vindos dos rios do planalto somados à fumaça das queimadas. Animais ilhados pelo fogo.',
+    licao: 'O Pantanal funciona como uma grande bacia: tudo o que acontece nos rios do planalto ao redor desce para a planície.',
+    avancado: 'Biomagnificação: contaminantes na água se acumulam nos peixes e chegam em maior concentração aos predadores de topo, como onças e tuiuiús.',
+    mentor: { nome: 'Zé do Barco', papel: 'Piloteiro e Socorrista de Fauna', item: 'maca',
+      fala: 'Bicho sabe fugir da água subindo e do fogo descendo. Quando tem seca extrema e incêndio junto, ele fica sem saída. Aí depende de nós.' },
+    dilema: { nome: 'Dra. Beatriz', papel: 'Veterinária e Epidemiologista',
+      fala: 'Preciso de amostras rigorosas para provar a contaminação dos rios, mas há animais precisando de socorro agora. Não sei o que priorizar!',
+      autoritario: 'Esqueça a pesquisa, só o resgate importa agora.',
+      escuta: 'Os dois objetivos são importantes. Como podemos dividir a equipe para fazer os dois?',
+      tecnico: 'Podemos coletar amostras durante o atendimento veterinário: cada animal socorrido gera dados científicos e salva vidas ao mesmo tempo.',
+      origem: { tradicional: 'Os piloteiros pantaneiros conhecem atalhos pelos corixos para levar a equipe mais rápido.', universitario: 'Posso organizar as fichas de laboratório enquanto você atende os animais.', voluntario: 'Consigo organizar voluntários para montar pontos de água e alimento para a fauna.' },
+      acordo: 'Protocolo conjunto de resgate de fauna e monitoramento das águas' } },
+  { id: 'mata', nome: 'Mata Atlântica', setores: ['Fragmentos urbanos', 'Encosta e APP do loteamento'], ameaca: 50, tensao: 50,
+    intro: 'Resta cerca de 12% a 15% da floresta original, onde vive a maior parte da população brasileira. Protege encostas e nascentes das cidades.',
+    pista: 'Mapas indicam um loteamento planejado sobre encosta íngreme (Área de Preservação Permanente - APP), com solo instável e risco de deslizamento.',
+    licao: 'Fragmentação florestal: quando a mata fica dividida em "ilhas" isoladas, os animais não conseguem circular. Corredores ecológicos reconectam a floresta.',
+    avancado: 'Serviços ecossistêmicos: as raízes da Mata Atlântica seguram o solo das serras nas chuvas fortes, evitando tragédias e abastecendo represas.',
+    mentor: { nome: 'Robson das Mudas', papel: 'Silvicultor Comunitário', item: 'dispersor',
+      fala: 'Mata isolada enfraquece devagar. Uma faixa de árvores nativas ligando dois pedaços de floresta vira uma ponte de vida para aves e sementes.' },
+    dilema: { nome: 'Engenheiro Mariano', papel: 'Representante Imobiliário',
+      fala: 'O condomínio traz obras e moradia. Vocês só sabem barrar projetos! Me dê um argumento técnico de verdade.',
+      autoritario: 'Esse projeto é ilegal e vamos interditar tudo na força.',
+      escuta: 'A cidade precisa crescer com segurança. Quais áreas do terreno são mais importantes para o projeto?',
+      tecnico: 'A encosta é uma APP com risco real de deslizamento. Preservar a mata da encosta como Parque Linear evita desastres e valoriza as casas.',
+      origem: { tradicional: 'Moradores antigos viram aquela encosta desmoronar quando tiraram as árvores anos atrás.', universitario: 'O mapa de declividade comprova o risco geológico na área de encosta.', voluntario: 'Os moradores do bairro apoiam o projeto se a nascente virar um parque ecológico aberto.' },
+      acordo: 'Revisão do loteamento preservando a encosta (APP) com corredor ecológico' } },
+  { id: 'pampa', nome: 'Pampa', setores: ['Campos nativos do Sul', 'Estância tradicional'], ameaca: 50, tensao: 45,
+    intro: 'Campos sulinos do Rio Grande do Sul. Mais de 2 mil espécies de plantas campestres, aves como o quero-quero e raposas como o graxaim.',
+    pista: 'Touceiras duras de capim-annoni se espalhando: o gado não consegue pastar essa planta invasora e ela sufoca as gramíneas nativas do Pampa.',
+    licao: 'O Pampa não é uma "floresta desmatada": é um ecossistema natural de campos que evoluiu com ervas, gramíneas e raízes que protegem o solo.',
+    avancado: 'Manejo sustentável do campo nativo: criar gado na medida certa preserva as sementes nativas, evita a erosão (arenização) e protege as aves campestres.',
+    mentor: { nome: 'Dona Carmen', papel: 'Pastora e Pesquisadora dos Campos', item: 'extirpador',
+      fala: 'Quem olha rápido acha que é só grama. Mas aqui no chão tem centenas de flores, ninhos de perdiz e raízes que seguram a água da chuva.' },
+    dilema: { nome: 'Seu Lauro', papel: 'Pecuarista Tradicionalista',
+      fala: 'Bah, tchê! Meu avô já criava gado nesse campo aberto. Agora vem gente de fora querer ensinar o gaúcho a cuidar do pasto?',
+      autoritario: 'O senhor está degradando o campo e vai receber multa.',
+      escuta: 'O senhor conhece essa terra há gerações. O que mudou no capim desde o tempo do seu avô?',
+      tecnico: 'O capim-annoni invasor está tirando o alimento do seu gado. Controlando a invasora e ajustando a lotação do pasto, o gado engorda melhor e o Pampa vive.',
+      origem: { tradicional: 'Também sou da lida campeira e sei que campo nativo bem cuidado vale ouro.', universitario: 'Pesquisas mostram que o pastoreio rotativo no campo nativo aumenta a qualidade da carne.', voluntario: 'Consumidores e feiras valorizam cada vez mais produtos com selo de preservação do Pampa.' },
+      acordo: 'Manejo sustentável do campo nativo e mutirão contra o capim-annoni' } }
+];
+
+/* ---------- MICRO-EVENTOS PROCEDURAIS ---------- */
+const EVENTOS = [
+  { titulo: 'Mudança repentina na direção do vento', biomas: ['cerrado', 'pantanal', 'pampa'], texto: 'O vento vira rápido! A frente de fumaça e calor avança para perto das nascentes.',
+    opcoes: [{ txt: 'Abrir aceiro emergencial (Gestão CD 12)', attr: 'ges', cd: 12 }, { txt: 'Alertar moradores pelo rádio (Carisma CD 11)', attr: 'car', cd: 11 }] },
+  { titulo: 'Chuva torrencial de cabeceira', biomas: ['amazonia', 'mata', 'pantanal'], texto: 'Uma tromba d\'água faz o nível do rio subir depressa e arrasta lama.',
+    opcoes: [{ txt: 'Analisar a margem segura (Ecologia CD 11)', attr: 'eco', cd: 11 }, { txt: 'Coordenar retirada preventiva (Gestão CD 13)', attr: 'ges', cd: 13 }] },
+  { titulo: 'Travessia de fauna silvestre', biomas: null, texto: 'Uma família de animais silvestres tenta atravessar a estrada assustada!',
+    opcoes: [{ txt: 'Sinalizar a pista e reduzir velocidade (Gestão CD 11)', attr: 'ges', cd: 11 }, { txt: 'Guiar os animais pelo corredor seguro (Ecologia CD 12)', attr: 'eco', cd: 12 }] },
+  { titulo: 'Fake news no grupo da comunidade', biomas: null, texto: 'Um boato falso diz que os pesquisadores vão proibir os moradores de trabalhar!',
+    opcoes: [{ txt: 'Fazer roda de conversa para explicar (Carisma CD 12)', attr: 'car', cd: 12 }, { txt: 'Mostrar os dados reais de forma simples (Ecologia CD 13)', attr: 'eco', cd: 13 }] },
+  { titulo: 'Onda de calor extremo', biomas: ['caatinga', 'cerrado', 'pampa'], texto: 'A temperatura bate recorde: a evaporação aumenta e as plantas murcham.',
+    opcoes: [{ txt: 'Distribuir água das reservas (Gestão CD 12)', attr: 'ges', cd: 12 }, { txt: 'Organizar proteção das nascentes (Carisma CD 12)', attr: 'car', cd: 12 }] }
+];
+
+const $ = id => document.getElementById(id);
+const bioma = () => BIOMAS[GameState.biomaAtual];
+const limitar = v => Math.max(0, Math.min(100, v));
+const espera = ms => new Promise(r => setTimeout(r, ms));
+
+/* =====================================================================
+   SISTEMA VISUAL DE PIORA AMBIENTAL (ANIMAÇÕES DE ALERTA)
+   ===================================================================== */
+function animarPioraAmbiental(motivo, deltaInt = 0, deltaAme = 0, deltaTen = 0) {
+  // 1. Vinheta vermelha pulsante nas bordas da tela
+  const vinheta = $('vinhetaAlerta');
+  vinheta.classList.remove('ativa');
+  void vinheta.offsetWidth; // força reflow
+  vinheta.classList.add('ativa');
+
+  // 2. Tremor na tela
+  document.body.classList.remove('tremor-ambiental');
+  void document.body.offsetWidth;
+  document.body.classList.add('tremor-ambiental');
+
+  // 3. Banner superior de alerta ambiental
+  const banner = $('bannerDegradacao');
+  $('txtBannerDegradacao').textContent = motivo;
+  banner.classList.remove('mostrar');
+  void banner.offsetWidth;
+  banner.classList.add('mostrar');
+
+  // 4. Piscar painel do bioma e barras afetadas
+  const pBioma = $('painelBiomaStatus');
+  if (pBioma) {
+    pBioma.classList.remove('alerta-piora');
+    void pBioma.offsetWidth;
+    pBioma.classList.add('alerta-piora');
+  }
+  if (deltaInt < 0) {
+    $('barraIntWrap').classList.remove('piorando');
+    void $('barraIntWrap').offsetWidth;
+    $('barraIntWrap').classList.add('piorando');
+    mostrarDeltaFlutuante('deltaInt', `${deltaInt}%`, 'ruim');
+  }
+  if (deltaAme > 0) {
+    $('barraAmeWrap').classList.remove('piorando');
+    void $('barraAmeWrap').offsetWidth;
+    $('barraAmeWrap').classList.add('piorando');
+    mostrarDeltaFlutuante('deltaAme', `+${deltaAme}%`, 'ruim');
+  }
+  if (deltaTen > 0) {
+    mostrarDeltaFlutuante('deltaTen', `+${deltaTen}% tensão`, 'ruim');
+  }
+}
+
+function mostrarDeltaFlutuante(idSpan, texto, tipo) {
+  const el = $(idSpan);
+  if (!el) return;
+  el.innerHTML = `<span class="flutuante-delta ${tipo}">${texto}</span>`;
+}
+
+/* =====================================================================
+   AVATAR SVG DINÂMICO
+   ===================================================================== */
+function gerarAvatar(av, tam = 160) {
+  const c = CORES[av.cor];
+  let cabelo = '';
+  if (av.cabelo === 'curto') cabelo = `<path d="M30 52 Q30 22 60 22 Q90 22 90 52 Q84 36 60 34 Q36 36 30 52Z" fill="${c}"/>`;
+  if (av.cabelo === 'ondulado') cabelo = `<path d="M26 70 Q22 40 34 28 Q60 10 86 28 Q98 40 94 70 Q90 60 92 50 Q84 34 60 34 Q36 34 28 50 Q30 60 26 70Z" fill="${c}"/>`;
+  if (av.cabelo === 'trancas') cabelo = `<path d="M30 52 Q30 22 60 22 Q90 22 90 52 Q84 36 60 34 Q36 36 30 52Z" fill="${c}"/>
+      <rect x="24" y="48" width="8" height="46" rx="4" fill="${c}"/><rect x="88" y="48" width="8" height="46" rx="4" fill="${c}"/>
+      <circle cx="28" cy="96" r="4" fill="#39ff14"/><circle cx="92" cy="96" r="4" fill="#39ff14"/>`;
+  if (av.cabelo === 'coque') cabelo = `<circle cx="60" cy="16" r="12" fill="${c}"/><path d="M30 52 Q30 24 60 24 Q90 24 90 52 Q84 38 60 36 Q36 38 30 52Z" fill="${c}"/>`;
+  let acc = '';
+  if (av.acessorio === 'chapeu') acc = `<ellipse cx="60" cy="30" rx="44" ry="8" fill="#d4b062"/><path d="M38 30 Q40 8 60 8 Q80 8 82 30Z" fill="#c9a24f"/><rect x="38" y="24" width="44" height="4" fill="#8a5a2b"/>`;
+  if (av.acessorio === 'oculos') acc = `<rect x="38" y="46" width="18" height="12" rx="4" fill="#22d3ee55" stroke="#22d3ee" stroke-width="2"/><rect x="64" y="46" width="18" height="12" rx="4" fill="#22d3ee55" stroke="#22d3ee" stroke-width="2"/><line x1="56" y1="52" x2="64" y2="52" stroke="#22d3ee" stroke-width="2"/>`;
+  if (av.acessorio === 'bandana') acc = `<path d="M30 40 Q60 28 90 40 L90 46 Q60 36 30 46Z" fill="#f0b429"/><path d="M90 42 L102 50 L94 54Z" fill="#f0b429"/>`;
+  return `<svg width="${tam}" height="${tam}" viewBox="0 0 120 130" role="img" aria-label="Avatar do pesquisador">
+    <rect x="28" y="96" width="64" height="34" rx="14" fill="#2ea043"/><path d="M50 96 L60 110 L70 96" fill="#161b22"/>
+    <rect x="52" y="80" width="16" height="18" fill="#c68a5a"/>
+    ${av.cabelo === 'ondulado' ? cabelo : ''}
+    <ellipse cx="60" cy="56" rx="28" ry="30" fill="#d9a074"/>
+    <circle cx="48" cy="54" r="3" fill="#0b0f14"/><circle cx="72" cy="54" r="3" fill="#0b0f14"/>
+    <path d="M50 70 Q60 77 70 70" stroke="#0b0f14" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    ${av.cabelo !== 'ondulado' ? cabelo : ''}${acc}
+  </svg>`;
+}
+
+/* =====================================================================
+   TELA DE CRIAÇÃO DE PERSONAGEM INTUITIVA
+   ===================================================================== */
+function montarCardsEscolha(contId, dados, chaveSelecionada, onSel) {
+  const cont = $(contId);
+  cont.innerHTML = '';
+  Object.keys(dados).forEach(k => {
+    const item = dados[k];
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'card-opcao' + (chaveSelecionada === k ? ' sel' : '');
+    card.innerHTML = `
+      <div class="titulo-card"><span>${item.icone}</span> <span>${item.nome}</span></div>
+      <div class="desc-card">${item.desc}</div>
+      <div class="efeito-card">${item.efeito}</div>
+    `;
+    card.onclick = () => {
+      [...cont.children].forEach(x => x.classList.remove('sel'));
+      card.classList.add('sel');
+      onSel(k);
+      atualizarPreview();
+    };
+    cont.appendChild(card);
+  });
+}
+
+function montarOpcoesSimples(contId, dados, chave, getNome, onSel) {
+  const cont = $(contId); cont.innerHTML = '';
+  Object.keys(dados).forEach(k => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = getNome(k);
+    b.onclick = () => { [...cont.children].forEach(x => x.classList.remove('sel')); b.classList.add('sel'); onSel(k); };
+    if (chave === k) b.classList.add('sel');
+    cont.appendChild(b);
+  });
+}
+
+function renderAttrsCriacao() {
+  const p = GameState.personagem;
+  const gasto = p.atributos.eco + p.atributos.car + p.atributos.ges;
+  const rest = 10 - gasto;
+  $('pontosRest').textContent = rest;
+  $('pontosRest').style.color = rest === 0 ? 'var(--neon)' : 'var(--ambar)';
+
+  const focoClasse = p.classe ? CLASSES[p.classe].foco : null;
+
+  $('attrsCriacao').innerHTML = Object.keys(ATTR_NOMES).map(a => {
+    const valBase = p.atributos[a];
+    const bonusArq = focoClasse === a ? 1 : 0;
+    const pips = [1, 2, 3, 4, 5, 6].map(i => `<span class="attr-pip ${i <= valBase ? 'ativo' : ''}"></span>`).join('')
+               + (bonusArq ? `<span class="attr-pip bonus" title="+1 do Arquétipo"></span>` : '');
+    return `
+      <div class="attr-card">
+        <div class="attr-topo">
+          <div class="attr-info">
+            <strong>${ATTR_NOMES[a]} ${bonusArq ? '<span class="badge" style="color:var(--ciano)">+1 Arquétipo</span>' : ''}</strong>
+            <small>${ATTR_AJUDA[a]}</small>
+          </div>
+          <div class="attr-controles">
+            <button type="button" data-a="${a}" data-d="-1">−</button>
+            <span class="attr-val">${valBase + bonusArq}</span>
+            <button type="button" data-a="${a}" data-d="1">+</button>
+          </div>
+        </div>
+        <div class="attr-pip-bar">${pips}</div>
+      </div>`;
+  }).join('');
+
+  $('attrsCriacao').querySelectorAll('button').forEach(b => b.onclick = () => {
+    const a = b.dataset.a, d = +b.dataset.d, v = p.atributos[a] + d;
+    if (v < 0 || v > 6 || (d > 0 && gasto >= 10)) return;
+    p.atributos[a] = v;
+    renderAttrsCriacao();
+    atualizarPreview();
+  });
+}
+
+function atualizarPreview() {
+  const p = GameState.personagem;
+  $('avatarPreview').innerHTML = gerarAvatar(p.avatar, 175);
+  const foco = p.classe ? CLASSES[p.classe].foco : null;
+  const nomeInput = $('nome').value.trim() || 'Pesquisador(a) Sem Nome';
+  $('resumoFichaCriacao').innerHTML = `
+    <p class="mono" style="font-size:.95rem;color:var(--neon)"><b>${nomeInput}</b></p>
+    <p class="sec" style="margin:.2rem 0"><b>Origem:</b> ${p.origem ? ORIGENS[p.origem].nome : '<i>Escolha acima</i>'}</p>
+    <p class="sec" style="margin:.2rem 0"><b>Arquétipo:</b> ${p.classe ? CLASSES[p.classe].nome : '<i>Escolha acima</i>'}</p>
+    <p class="sec" style="margin:.2rem 0"><b>Equipamento inicial:</b> ${p.classe ? ITENS[CLASSES[p.classe].item].nome : '—'}</p>
+    <hr style="border:none;border-top:1px dashed var(--borda);margin:.6rem 0">
+    <div class="stat"><span>🔍 Ecologia (Investigar)</span><b>+${p.atributos.eco + (foco === 'eco' ? 1 : 0)}</b></div>
+    <div class="stat"><span>💬 Carisma (Dialogar)</span><b>+${p.atributos.car + (foco === 'car' ? 1 : 0)}</b></div>
+    <div class="stat"><span>🤝 Gestão (Mobilizar)</span><b>+${p.atributos.ges + (foco === 'ges' ? 1 : 0)}</b></div>
+  `;
+}
+
+function iniciarCriacao() {
+  const p = GameState.personagem;
+  $('nome').oninput = atualizarPreview;
+  montarCardsEscolha('optOrigem', ORIGENS, p.origem, k => { p.origem = k; });
+  montarCardsEscolha('optClasse', CLASSES, p.classe, k => { p.classe = k; renderAttrsCriacao(); });
+  montarOpcoesSimples('optCabelo', CABELOS, p.avatar.cabelo, k => CABELOS[k], k => { p.avatar.cabelo = k; atualizarPreview(); });
+  montarOpcoesSimples('optCor', CORES, p.avatar.cor, k => NOMES_COR[k], k => { p.avatar.cor = k; atualizarPreview(); });
+  montarOpcoesSimples('optAcess', ACESS, p.avatar.acessorio, k => ACESS[k], k => { p.avatar.acessorio = k; atualizarPreview(); });
+  renderAttrsCriacao();
+  atualizarPreview();
+
+  $('btnIniciar').onclick = () => {
+    p.nome = $('nome').value.trim();
+    const gasto = p.atributos.eco + p.atributos.car + p.atributos.ges;
+    if (!p.nome) return $('avisoCriacao').textContent = '⚠️ Digite o seu Nome ou Codinome de Campo (Passo 1).';
+    if (!p.origem) return $('avisoCriacao').textContent = '⚠️ Clique em uma Origem (Passo 2).';
+    if (!p.classe) return $('avisoCriacao').textContent = '⚠️ Clique em um Arquétipo (Passo 3).';
+    if (gasto < 10) return $('avisoCriacao').textContent = `⚠️ Você ainda tem ${10 - gasto} ponto(s) de atributo para distribuir no Passo 4!`;
+
+    p.atributos[CLASSES[p.classe].foco] += 1;
+    p.inventario.push(CLASSES[p.classe].item);
+    $('criacao').classList.add('oculto');
+    $('jogo').classList.remove('oculto');
+    iniciarBioma(0);
+  };
+}
+
+/* =====================================================================
+   LOG NARRATIVO E ESCOLHAS
+   ===================================================================== */
+function log(html, cls = '') {
+  const p = document.createElement('p'); p.className = cls; p.innerHTML = html;
+  $('log').appendChild(p); $('log').scrollTop = $('log').scrollHeight;
+}
+function falaNPC(npc, txt) { log(`<b>${npc.nome}</b> <span class="sec">(${npc.papel})</span>: “${txt}”`, 'l-npc'); }
+
+function escolhas(lista) {
+  const c = $('escolhas'); c.innerHTML = '';
+  lista.forEach(o => {
+    const b = document.createElement('button'); b.innerHTML = o.txt; b.disabled = !!o.disabled;
+    b.onclick = () => { c.innerHTML = ''; o.fn(); };
+    c.appendChild(b);
+  });
+  bloquearAcoes(lista.length > 0);
+}
+function bloquearAcoes(b) {
+  ['aInvestigar', 'aDialogo', 'aItem', 'aMobilizar', 'aAvancar'].forEach(id => $(id).disabled = b || bioma().tutorial);
+  if (!b && !bioma().tutorial) {
+    $('aMobilizar').disabled = GameState.pa < 2;
+  }
+}
+
+/* =====================================================================
+   MOTOR DE PROBABILIDADES (D20)
+   ===================================================================== */
+function modificador(attr) {
+  let m = GameState.personagem.atributos[attr];
+  if (attr === 'eco' && GameState.personagem.inventario.includes('caderno')) m += 1;
+  return m;
+}
+
+async function rolar(attr, cd, descricao) {
+  const nat = Math.floor(Math.random() * 20) + 1;
+  let bonus = 0;
+  if (GameState.bonusProximo && (GameState.bonusAttr === attr || GameState.bonusAttr === 'qualquer')) {
+    bonus = GameState.bonusProximo; GameState.bonusProximo = 0; GameState.bonusAttr = null;
+  }
+  const total = nat + modificador(attr) + bonus;
+  const dado = $('dado'); dado.className = 'rolando'; $('textoDado').textContent = 'Rolando D20…';
+  const intv = setInterval(() => dado.textContent = Math.floor(Math.random() * 20) + 1, 70);
+  await espera(800); clearInterval(intv);
+  dado.textContent = nat;
+
+  let grau;
+  if (nat === 20) grau = 'critico';
+  else if (nat <= 3) grau = 'falhaCritica';
+  else if (total > cd) grau = 'pleno';
+  else if (total === cd) grau = 'parcial';
+  else grau = 'falha';
+
+  const ok = ['critico', 'pleno', 'parcial'].includes(grau);
+  dado.className = ok ? 'sucesso' : 'falha';
+  const NOMES = {
+    critico: 'SUCESSO CRÍTICO!',
+    pleno: 'SUCESSO PLENO',
+    parcial: 'SUCESSO PARCIAL (com custo)',
+    falha: 'FALHA COM CONSEQUÊNCIA',
+    falhaCritica: 'FALHA CRÍTICA!'
+  };
+  const txt = `${descricao}: D20(${nat}) + ${ATTR_NOMES[attr].split(' ')[0]}(${modificador(attr)})${bonus ? ' + Item(' + bonus + ')' : ''} = <b>${total}</b> vs CD ${cd} → <b>${NOMES[grau]}</b>`;
+  $('textoDado').innerHTML = txt;
+  log('🎲 ' + txt, ok ? 'l-bom mono' : 'l-ruim mono');
+  GameState.historicoRolagens.push({ bioma: bioma().nome, rodada: GameState.rodada, desc: descricao, nat, total, cd, grau: NOMES[grau] });
+  return grau;
+}
+
+/* Aplica efeitos e dispara animações visuais quando o meio ambiente piora */
+function aplicarGrau(grau, npcNome) {
+  const b = bioma();
+  if (grau === 'falhaCritica') {
+    GameState.ameaca = limitar(GameState.ameaca + 15);
+    GameState.tensao = limitar(GameState.tensao + 10);
+    if (npcNome) { GameState.npcFechado[npcNome] = true; log(`${npcNome} se fecha para conversas nesta rodada.`, 'l-ruim'); }
+    log('⚠️ Falha Crítica! O problema ambiental se agrava rapidamente (+15% ameaça, +10% tensão).', 'l-ruim');
+    animarPioraAmbiental(`Ameaça em ${b.nome} subiu +15%!`, 0, 15, 10);
+  } else if (grau === 'falha') {
+    GameState.ameaca = limitar(GameState.ameaca + 5);
+    log('⚠️ A ação não atingiu o objetivo e a pressão ambiental cresceu (+5% ameaça).', 'l-alerta');
+    animarPioraAmbiental(`Ameaça ambiental subiu +5% em ${b.nome}!`, 0, 5, 0);
+  } else if (grau === 'parcial') {
+    const consumivel = GameState.personagem.inventario.find(i => !ITENS[i].passivo);
+    if (consumivel && Math.random() < .5) {
+      GameState.personagem.inventario.splice(GameState.personagem.inventario.indexOf(consumivel), 1);
+      log(`Objetivo cumprido no limite, mas ${ITENS[consumivel].nome} foi gasto no processo.`, 'l-alerta');
+    } else {
+      GameState.paDivida = 1;
+      log('Objetivo cumprido com esforço extra: você terá 1 PA a menos na próxima rodada.', 'l-alerta');
+    }
+  } else if (grau === 'pleno') {
+    GameState.integridade[b.id] = limitar(GameState.integridade[b.id] + 10);
+    GameState.ameaca = limitar(GameState.ameaca - 10);
+    if (npcNome) GameState.confianca[npcNome] = (GameState.confianca[npcNome] || 0) + 1;
+    mostrarDeltaFlutuante('deltaInt', '+10%', 'bom');
+    log('✨ Bom trabalho! Integridade ecológica +10% e Ameaça −10%.', 'l-bom');
+  } else if (grau === 'critico') {
+    GameState.integridade[b.id] = limitar(GameState.integridade[b.id] + 20);
+    GameState.ameaca = limitar(GameState.ameaca - 15);
+    GameState.personagem.inventario.push('mudaBonus');
+    if (npcNome) GameState.confianca[npcNome] = (GameState.confianca[npcNome] || 0) + 2;
+    if (b.avancado && !GameState.aprendizados.includes(b.avancado)) GameState.aprendizados.push(b.avancado);
+    mostrarDeltaFlutuante('deltaInt', '+20%', 'bom');
+    log('🌟 SOLUÇÃO EXEMPLAR! Integridade +20%, Muda Rara recebida e descoberta científica registrada!', 'l-bom');
+    if (b.avancado) log('📘 Descoberta Científica: ' + b.avancado, 'l-agua');
+  }
+  render();
+  return ['critico', 'pleno', 'parcial'].includes(grau);
+}
+
+/* =====================================================================
+   CICLO DE BIOMA, RODADA E PA
+   ===================================================================== */
+const MAX_RODADAS = 5;
+function iniciarBioma(i) {
+  GameState.biomaAtual = i; GameState.rodada = 1; GameState.pa = 2; GameState.paDivida = 0;
+  GameState.progresso = { investigou: false, mentor: false, acordo: false, setor: 0 };
+  GameState.npcFechado = {};
+  const b = bioma();
+  GameState.integridade[b.id] = b.tutorial ? 100 : 50;
+  GameState.ameaca = b.ameaca || 0; GameState.tensao = b.tensao || 0;
+  $('log').innerHTML = '';
+  log(`══════ 📍 ${b.nome.toUpperCase()} ══════`, 'l-sis');
+  log(b.intro);
+  if (b.tutorial) tutorial();
+  else {
+    log(`Setor inicial: <b>${b.setores[0]}</b>. Você tem ${MAX_RODADAS} rodadas para deixar a Integridade acima de 60%.`, 'l-sis');
+    escolhas([]);
+  }
+  render();
+}
+
+async function gastarPA(n) {
+  GameState.pa -= n; render();
+  if (GameState.pa <= 0) await turnoEcossistema();
+}
+
+async function turnoEcossistema() {
+  const b = bioma();
+  $('mJog').classList.remove('ativo'); $('mEco').classList.add('ativo', 'eco');
+  bloquearAcoes(true);
+  log('🌿 Turno do Ambiente: verificando tendências ecológicas…', 'l-eco');
+  await espera(900);
+
+  const perda = Math.round(GameState.ameaca / 10 + GameState.tensao / 20);
+  const avancoAmeaca = GameState.progresso.acordo ? 0 : 4;
+  GameState.integridade[b.id] = limitar(GameState.integridade[b.id] - perda);
+  GameState.ameaca = limitar(GameState.ameaca + avancoAmeaca);
+
+  if (perda > 0) {
+    log(`📉 Degradação ativa: a pressão ambiental derrubou a integridade de ${b.nome} em <b>−${perda}%</b>${avancoAmeaca ? ` e a ameaça subiu +${avancoAmeaca}%` : ''}.`, 'l-ruim');
+    animarPioraAmbiental(`${b.nome}: Integridade caiu −${perda}%!`, -perda, avancoAmeaca, 0);
+  } else {
+    log('O bioma permaneceu estável nesta rodada.', 'l-agua');
+  }
+  if (GameState.progresso.acordo) log('🤝 O acordo comunitário impediu que a ameaça voltasse a subir!', 'l-bom');
+
+  render();
+  GameState.rodada++;
+  if (GameState.rodada > MAX_RODADAS) {
+    log('⏳ O tempo da missão neste bioma terminou.', 'l-alerta');
+    return concluirBioma();
+  }
+  if (Math.random() < .25) return microEvento();
+  novaRodada();
+}
+
+function novaRodada() {
+  GameState.pa = 2 - GameState.paDivida; GameState.paDivida = 0; GameState.npcFechado = {};
+  $('mEco').classList.remove('ativo', 'eco'); $('mJog').classList.add('ativo');
+  log(`── Rodada ${GameState.rodada}/${MAX_RODADAS} · Você tem ${GameState.pa} PA ──`, 'l-sis');
+  escolhas([]); render();
+}
+
+function microEvento() {
+  const b = bioma();
+  const pool = EVENTOS.filter(e => !e.biomas || e.biomas.includes(b.id));
+  const ev = pool[Math.floor(Math.random() * pool.length)];
+  log(`⚡ EVENTO SURPRESA: <b>${ev.titulo}</b> — ${ev.texto}`, 'l-alerta');
+  const reg = { bioma: b.nome, titulo: ev.titulo, resultado: '' };
+  GameState.historicoEventos.push(reg);
+  escolhas(ev.opcoes.map(o => ({ txt: '⚡ ' + o.txt, fn: async () => {
+    const g = await rolar(o.attr, o.cd, ev.titulo);
+    const ok = ['critico', 'pleno', 'parcial'].includes(g);
+    reg.resultado = ok ? 'contido' : 'agravou';
+    if (ok) {
+      GameState.integridade[b.id] = limitar(GameState.integridade[b.id] + 5);
+      mostrarDeltaFlutuante('deltaInt', '+5%', 'bom');
+      log('Resposta rápida! Integridade +5%.', 'l-bom');
+    } else {
+      GameState.integridade[b.id] = limitar(GameState.integridade[b.id] - 8);
+      GameState.ameaca = limitar(GameState.ameaca + 5);
+      log('⚠️ O evento agravou a crise no bioma! Integridade −8%, Ameaça +5%.', 'l-ruim');
+      animarPioraAmbiental(`Evento agravou ${b.nome}: −8% Integridade!`, -8, 5, 0);
+    }
+    novaRodada();
+  } })));
+}
+
+/* =====================================================================
+   TUTORIAL — DRA. CLARA
+   ===================================================================== */
+function tutorial() {
+  const clara = BIOMAS[0].mentor;
+  const passos = [
+    `Olá, ${GameState.personagem.nome}! Bem-vindo(a) aos Guardiões dos Biomas. Sua missão é visitar os 6 biomas do Brasil e deixá-los com mais de 60% de Integridade Ecológica.`,
+    `Em cada rodada você tem 2 Pontos de Ação (PA). Comece sempre usando 🔍 Investigar (para descobrir a pista científica) e 💬 Dialogar com o Mentor local (para ganhar um equipamento especial daquele bioma).`,
+    `Depois, converse com quem vive o conflito local para firmar um Acordo. Cuidado: respostas autoritárias aumentam a Tensão e fazem o ambiente piorar!`,
+    `Aqui está o seu Caderno de Campo Digital (+1 automático em todos os testes de Ecologia). Boa sorte na Amazônia!`
+  ];
+  let i = 0;
+  const prox = () => {
+    falaNPC(clara, passos[i]); i++;
+    if (i < passos.length) escolhas([{ txt: '▸ Próxima dica', fn: prox }]);
+    else escolhas([{ txt: '▸ Receber Caderno Digital e embarcar para a Amazônia!', fn: () => {
+      GameState.personagem.inventario.push('caderno');
+      log('🎒 Equipamento recebido: <b>Caderno de Campo Digital</b> (+1 passivo em Ecologia).', 'l-bom');
+      render(); setTimeout(() => iniciarBioma(1), 800);
+    } }]);
+  };
+  prox();
+}
+
+/* =====================================================================
+   AÇÕES DO JOGADOR
+   ===================================================================== */
+// 🔍 Investigar
+$('aInvestigar').onclick = async () => {
+  const b = bioma(); bloquearAcoes(true);
+  const g = await rolar('eco', 12, 'Investigação de campo');
+  const ok = aplicarGrau(g);
+  if (ok && !GameState.progresso.investigou) {
+    GameState.progresso.investigou = true; GameState.pistas[b.id] = b.pista;
+    GameState.dialogosDesbloqueados.push(b.dilema.nome + ': argumento técnico');
+    log('🔍 Pista descoberta: ' + b.pista, 'l-agua');
+    log('💡 Você desbloqueou o Argumento Científico [Evidência] para usar na conversa com ' + b.dilema.nome + '!', 'l-bom');
+  } else if (ok) log('Você monitora novas áreas e ajuda a frear a degradação.', 'l-agua');
+  else if (g === 'falha') log('📚 Nota de estudo: ' + b.licao, 'l-agua');
+  await gastarPA(1); if (GameState.pa > 0) bloquearAcoes(false);
+};
+
+// 💬 Diálogo
+$('aDialogo').onclick = () => {
+  const b = bioma();
+  escolhas([
+    { txt: `🧑‍🏫 Conversar com Mentor: <b>${b.mentor.nome}</b> (${b.mentor.papel})${GameState.progresso.mentor ? ' ✔ Item recebido' : ' 🎁 Entrega Item'}`, fn: () => dialogoMentor(), disabled: GameState.npcFechado[b.mentor.nome] },
+    { txt: `⚖ Mediar conflito: <b>${b.dilema.nome}</b> (${b.dilema.papel})${GameState.progresso.acordo ? ' ✔ Acordo firmado' : ''}`, fn: () => dialogoDilema(), disabled: GameState.npcFechado[b.dilema.nome] || GameState.progresso.acordo },
+    { txt: '✕ Voltar', fn: () => bloquearAcoes(false) }
+  ]);
+};
+
+async function dialogoMentor() {
+  const b = bioma(), m = b.mentor;
+  falaNPC(m, m.fala);
+  escolhas([
+    { txt: '“Pode me explicar como a natureza funciona neste bioma?” (Sem teste)', fn: async () => {
+      falaNPC(m, b.licao); await finalizarMentor(); } },
+    { txt: '“Vim somar forças com a comunidade. Como podemos agir?” (Carisma CD 8 — pode subir integridade)', fn: async () => {
+      const g = await rolar('car', 8, 'Escuta ativa com ' + m.nome); aplicarGrau(g, m.nome); await finalizarMentor(); } }
+  ]);
+}
+
+async function finalizarMentor() {
+  const b = bioma(), m = b.mentor;
+  if (!GameState.progresso.mentor) {
+    GameState.progresso.mentor = true; GameState.personagem.inventario.push(m.item);
+    falaNPC(m, 'Use este equipamento com sabedoria para proteger nosso bioma.');
+    log(`🎒 Você ganhou: <b>${ITENS[m.item].nome}</b>! Veja na sua mochila à esquerda.`, 'l-bom');
+  }
+  await gastarPA(1); if (GameState.pa > 0) bloquearAcoes(false);
+}
+
+async function dialogoDilema() {
+  const b = bioma(), d = b.dilema, orig = GameState.personagem.origem;
+  falaNPC(d, d.fala);
+  const op = [
+    { txt: `🟥 [Autoritário] “${d.autoritario}” (⚠️ Aumenta tensão social)`, fn: async () => {
+      GameState.tensao = limitar(GameState.tensao + 20); GameState.npcFechado[d.nome] = true;
+      falaNPC(d, 'Com ameaça e falta de respeito eu não converso mais hoje!');
+      log('⚠️ Postura autoritária: a Tensão Socioecológica subiu +20% e o diálogo travou nesta rodada.', 'l-ruim');
+      animarPioraAmbiental(`Tensão social com ${d.nome} subiu +20%!`, 0, 0, 20);
+      render();
+      await gastarPA(1); if (GameState.pa > 0) bloquearAcoes(false); } },
+    { txt: `🟨 [Escuta Ativa] “${d.escuta}” (Carisma CD 13)`, fn: () => testeDilema('car', 13, 'Escuta ativa') },
+    { txt: `🟦 [Sua Origem: ${ORIGENS[orig].nome}] “${d.origem[orig]}” (Carisma CD 11)`, fn: () => testeDilema('car', 11, 'Vínculo de origem') }
+  ];
+  if (GameState.progresso.investigou) {
+    op.splice(2, 0, { txt: `🟩 [Evidência Científica Descoberta] “${d.tecnico}” (Ecologia CD 10)`, fn: () => testeDilema('eco', 10, 'Argumento técnico') });
+  }
+  escolhas(op);
+}
+
+async function testeDilema(attr, cd, desc) {
+  const b = bioma(), d = b.dilema;
+  if (!GameState.dialogosDesbloqueados.includes(d.nome)) GameState.dialogosDesbloqueados.push(d.nome);
+  const g = await rolar(attr, cd, desc + ' com ' + d.nome);
+  const ok = aplicarGrau(g, d.nome);
+  if (ok) {
+    GameState.tensao = limitar(GameState.tensao - 20);
+    const conf = GameState.confianca[d.nome] || 0;
+    if (conf >= 1 || g === 'parcial' || g === 'critico') {
+      GameState.progresso.acordo = true;
+      GameState.acordos.push({ bioma: b.nome, npc: d.nome, acordo: d.acordo });
+      falaNPC(d, 'Você trouxe respeito e soluções reais. Vamos assinar esse compromisso!');
+      log(`🤝 ACORDO FIRMADO: ${d.acordo}`, 'l-bom');
+    } else falaNPC(d, 'Você tem um bom ponto. Vamos conversar mais uma vez para fechar o acordo.');
+  } else falaNPC(d, 'Ainda não estou convencido(a) de que essa ideia funciona.');
+  await gastarPA(1); if (GameState.pa > 0) bloquearAcoes(false);
+}
+
+// 🎒 Usar item
+$('aItem').onclick = () => {
+  const inv = GameState.personagem.inventario.filter(i => !ITENS[i].passivo);
+  if (!inv.length) return log('Nenhum item ativável na mochila no momento.', 'l-sis');
+  escolhas([...inv.map(id => {
+    const it = ITENS[id];
+    const ehBioma = it.bioma === bioma().id;
+    return {
+      txt: `🎒 <b>${it.nome}</b> — <span class="sec">${ehBioma ? '🌟 Efeito direto neste bioma (-15% Ameaça, +8% Integridade)' : '+3 no próximo teste de ' + ATTR_NOMES[it.attr].split(' ')[0]}</span>`,
+      fn: () => usarItem(id)
+    };
+  }), { txt: '✕ Cancelar', fn: () => bloquearAcoes(false) }]);
+};
+
+async function usarItem(id) {
+  const it = ITENS[id], b = bioma();
+  if (it.bioma === b.id) {
+    GameState.ameaca = limitar(GameState.ameaca - 15);
+    GameState.integridade[b.id] = limitar(GameState.integridade[b.id] + 8);
+    GameState.personagem.inventario.splice(GameState.personagem.inventario.indexOf(id), 1);
+    mostrarDeltaFlutuante('deltaInt', '+8%', 'bom');
+    log(`✨ Você utilizou <b>${it.nome}</b> diretamente no problema! Ameaça −15% e Integridade +8%.`, 'l-bom');
+  } else if (id === 'mudaBonus') {
+    GameState.tensao = limitar(GameState.tensao - 15);
+    GameState.personagem.inventario.splice(GameState.personagem.inventario.indexOf(id), 1);
+    log('🌱 Você plantou a Muda Rara junto com a comunidade. Tensão −15%.', 'l-bom');
+  } else {
+    GameState.bonusProximo = 3; GameState.bonusAttr = it.attr;
+    log(`🔧 Equipamento preparado: <b>${it.nome}</b> dará <b>+3</b> no seu próximo teste de ${ATTR_NOMES[it.attr]}!`, 'l-agua');
+  }
+  await gastarPA(1); if (GameState.pa > 0) bloquearAcoes(false);
+}
+
+// 🤝 Mobilização coletiva
+$('aMobilizar').onclick = async () => {
+  if (GameState.pa < 2) return;
+  bloquearAcoes(true);
+  log('📢 Você convoca um grande mutirão com moradores, brigadistas e estudantes!', 'l-sis');
+  const voluntario = GameState.personagem.origem === 'voluntario';
+  const g = await rolar('ges', voluntario ? 12 : 14, 'Mobilização coletiva');
+  const ok = aplicarGrau(g);
+  if (ok) {
+    GameState.ameaca = limitar(GameState.ameaca - 15);
+    GameState.tensao = limitar(GameState.tensao - 10);
+    log('🤝 O mutirão foi um sucesso! Ameaça −15% e Tensão −10%.', 'l-bom');
+  }
+  await gastarPA(2); if (GameState.pa > 0) bloquearAcoes(false);
+};
+
+// 🧭 Avançar
+$('aAvancar').onclick = async () => {
+  const pr = GameState.progresso, b = bioma();
+  if (pr.setor === 0) {
+    if (!pr.investigou || !pr.mentor) {
+      return log('🧭 Antes de avançar para o 2º setor, cumpra os objetivos básicos: use 🔍 Investigar e fale com o Mentor em 💬 Dialogar.', 'l-alerta');
+    }
+    pr.setor = 1; log(`🧭 Você avança para o 2º setor: <b>${b.setores[1]}</b>.`, 'l-agua');
+  } else {
+    log('🧭 Você conclui os trabalhos neste bioma e prepara o relatório.', 'l-agua');
+    GameState.pa = 0; return concluirBioma();
+  }
+  await gastarPA(1); if (GameState.pa > 0) bloquearAcoes(false);
+};
+
+/* =====================================================================
+   CONCLUSÃO DE BIOMA E PONTOS DE SABEDORIA
+   ===================================================================== */
+function concluirBioma() {
+  const b = bioma(), pr = GameState.progresso;
+  if (pr.acordo) GameState.integridade[b.id] = limitar(GameState.integridade[b.id] + 5);
+  const int = GameState.integridade[b.id];
+  log(`📊 Missão em ${b.nome} finalizada com Integridade de <b>${int}%</b>.`, int > 60 ? 'l-bom' : 'l-ruim');
+  render();
+  const proximo = () => GameState.biomaAtual < BIOMAS.length - 1 ? iniciarBioma(GameState.biomaAtual + 1) : mostrarDossie();
+  if (int > 60) {
+    GameState.personagem.sabedoria++;
+    log('🌟 Meta atingida (>60%)! Você ganhou <b>+1 Ponto de Sabedoria Ecológica</b>. Escolha qual atributo deseja melhorar:', 'l-bom');
+    escolhas(Object.keys(ATTR_NOMES).map(a => ({ txt: `⬆️ +1 em ${ATTR_NOMES[a]}`, fn: () => {
+      GameState.personagem.atributos[a]++; GameState.personagem.sabedoria--; render(); proximo(); } })));
+  } else {
+    animarPioraAmbiental(`${b.nome} terminou abaixo da meta (${int}%)`, 0, 0, 0);
+    escolhas([{ txt: GameState.biomaAtual < BIOMAS.length - 1 ? '▸ Seguir para o próximo bioma' : '▸ Ver Dossiê Final da Expedição', fn: proximo }]);
+  }
+}
+
+/* =====================================================================
+   RENDERIZAÇÃO DOS PAINÉIS
+   ===================================================================== */
+function render() {
+  const p = GameState.personagem, b = bioma();
+  if (!p.classe || !p.origem) return;
+  $('avatarJogo').innerHTML = gerarAvatar(p.avatar, 135);
+  $('pNome').textContent = p.nome;
+  $('pClasse').textContent = CLASSES[p.classe].nome + ' · ' + ORIGENS[p.origem].nome;
+  $('pAttrs').innerHTML = Object.keys(ATTR_NOMES).map(a => `<div class="stat"><span>${ATTR_NOMES[a]}</span><b>+${modificador(a)}</b></div>`).join('')
+    + (GameState.bonusProximo ? `<p class="l-agua" style="font-size:.76rem;margin-top:.3rem">⚡ Bônus ativo: +3 em ${ATTR_NOMES[GameState.bonusAttr]}</p>` : '');
+  $('inventario').innerHTML = p.inventario.map(id => `<button class="item" data-id="${id}">🎒 ${ITENS[id].nome}<small>${ITENS[id].passivo ? 'Bônus passivo (+1 Ecologia)' : ITENS[id].bioma === b.id ? '🌟 Ideal para este bioma!' : '+3 ' + ATTR_NOMES[ITENS[id].attr].split(' ')[0]}</small></button>`).join('') || '<p class="sec">Mochila vazia</p>';
+  $('inventario').querySelectorAll('.item').forEach(btn => btn.onclick = () => { const it = ITENS[btn.dataset.id]; $('descItem').innerHTML = `<b>${it.nome}</b><br>${it.desc}`; });
+
+  $('tRodada').textContent = Math.min(GameState.rodada, MAX_RODADAS); $('tMaxRod').textContent = MAX_RODADAS;
+  $('tPA').innerHTML = [0, 1].map(i => `<span class="pa ${i < GameState.pa ? 'cheio' : ''}"></span>`).join('');
+
+  const int = GameState.integridade[b.id] ?? 100;
+  $('bNome').textContent = b.nome;
+  $('bSetor').textContent = b.tutorial ? 'Fase de Treinamento' : '📍 Setor atual: ' + b.setores[GameState.progresso.setor || 0];
+  $('bInt').style.width = int + '%'; $('bIntTxt').textContent = int + '%';
+  $('bInt').style.background = int > 60 ? 'var(--neon)' : int > 35 ? 'var(--ambar)' : 'var(--verm)';
+  $('bAme').style.width = GameState.ameaca + '%'; $('bAmeTxt').textContent = GameState.ameaca + '%';
+  $('bTen').style.height = GameState.tensao + '%';
+  $('bTenTxt').textContent = GameState.tensao + '% ' + (GameState.tensao > 60 ? '🚨 Crítica' : GameState.tensao > 30 ? '⚠️ Moderada' : '🟢 Calma');
+  $('bTenTxt').style.color = GameState.tensao > 60 ? 'var(--verm)' : GameState.tensao > 30 ? 'var(--ambar)' : 'var(--neon)';
+
+  const pr = GameState.progresso;
+  $('objetivos').innerHTML = b.tutorial ? '<p class="objetivo">☐ Concluir conversa inicial com a Dra. Clara</p>' : [
+    [pr.investigou, '1. Usar 🔍 Investigar para descobrir a pista'],
+    [pr.mentor, '2. Conversar com ' + b.mentor.nome + ' (ganhar item)'],
+    [pr.setor >= 1, '3. Usar 🧭 Avançar para ir ao 2º setor'],
+    [pr.acordo, '4. Firmar acordo com ' + b.dilema.nome],
+    [int > 60, '5. Manter Integridade acima de 60%']
+  ].map(([ok, t]) => `<p class="objetivo ${ok ? 'ok' : ''}">${ok ? '✅' : '⬜'} ${t}</p>`).join('');
+
+  $('miniBiomas').innerHTML = BIOMAS.slice(1).map((x, i) => {
+    const v = GameState.integridade[x.id];
+    return `<div><span>${i + 1 === GameState.biomaAtual ? '▶ ' : ''}${x.nome}</span><span style="color:${v == null ? 'var(--sec)' : v > 60 ? 'var(--neon)' : 'var(--verm)'}">${v == null ? '—' : v + '%'}</span></div>`;
+  }).join('');
+  if (!$('escolhas').children.length && GameState.pa > 0) bloquearAcoes(false);
+}
+
+/* =====================================================================
+   DOSSIÊ FINAL E EXPORTAÇÃO
+   ===================================================================== */
+function mostrarDossie() {
+  const p = GameState.personagem;
+  $('jogo').classList.add('oculto'); const d = $('dossie'); d.classList.remove('oculto');
+  const ints = BIOMAS.slice(1).map(b => GameState.integridade[b.id] ?? 0);
+  const media = Math.round(ints.reduce((a, c) => a + c, 0) / ints.length);
+  const conceito = media >= 75 ? '🌟 Guardião(ã) Exemplar dos Biomas' : media >= 60 ? '🌿 Conservacionista Competente' : media >= 45 ? '🌱 Pesquisador(a) em Formação' : '⚠️ Aprendiz em Recuperação';
+  d.innerHTML = `
+  <div class="painel">
+    <h1>📜 DOSSIÊ FINAL DO PESQUISADOR — 7º ANO</h1>
+    <section style="display:flex;gap:1.2rem;align-items:center;flex-wrap:wrap;margin-top:1rem">
+      ${gerarAvatar(p.avatar, 130)}
+      <div>
+        <p class="mono" style="font-size:1.1rem"><b>${p.nome}</b></p>
+        <p>${CLASSES[p.classe].nome} · ${ORIGENS[p.origem].nome}</p>
+        <p class="sec">${Object.keys(ATTR_NOMES).map(a => ATTR_NOMES[a] + ': +' + p.atributos[a]).join(' · ')}</p>
+        <p class="l-bom mono" style="margin-top:.4rem;font-size:1rem">Média Geral de Conservação: ${media}% — ${conceito}</p>
+      </div>
+    </section>
+    <section><h2>📊 Integridade Final dos 6 Biomas</h2><table><tr><th>Bioma</th><th>Integridade Final</th><th>Situação Ecológica</th></tr>
+      ${BIOMAS.slice(1).map(b => `<tr><td><b>${b.nome}</b></td><td>${GameState.integridade[b.id] ?? 0}%</td><td>${(GameState.integridade[b.id] ?? 0) > 60 ? '✅ Em Regeneração Sustentável' : '⚠️ Degradado (Abaixo de 60%)'}</td></tr>`).join('')}</table></section>
+    <section><h2>🤝 Grau de Mediação Social: ${GameState.acordos.length}/6 Acordos Firmados</h2>
+      ${GameState.acordos.map(a => `<p>🤝 <b>${a.bioma}</b> (${a.npc}): ${a.acordo}</p>`).join('') || '<p class="sec">Nenhum acordo firmado durante a expedição.</p>'}</section>
+    <section><h2>📘 Descobertas Científicas Avançadas</h2>${GameState.aprendizados.map(a => `<p>📘 ${a}</p>`).join('') || '<p class="sec">Nenhum sucesso crítico (20 natural) obtido.</p>'}</section>
+    <section><h2>⚡ Eventos Surpresa Enfrentados</h2>${GameState.historicoEventos.map(e => `<p>⚡ <b>${e.bioma}</b>: ${e.titulo} — ${e.resultado || 'sem resposta'}</p>`).join('') || '<p class="sec">Nenhum.</p>'}</section>
+    <section><h2>🎲 Histórico de Rolagens (${GameState.historicoRolagens.length})</h2><table><tr><th>Bioma</th><th>Ação / Teste</th><th>Dado (D20)</th><th>Total vs CD</th><th>Resultado</th></tr>
+      ${GameState.historicoRolagens.map(r => `<tr><td>${r.bioma}</td><td>${r.desc}</td><td>${r.nat}</td><td>${r.total} / ${r.cd}</td><td>${r.grau}</td></tr>`).join('')}</table></section>
+    <section><h2>📚 Resumo de Aprendizagem (Ciências e Legislação Ambiental)</h2>${conclusoes().map(c => `<p style="margin-bottom:.4rem">• ${c}</p>`).join('')}</section>
+    <div class="nao-imprimir" style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem">
+      <button class="primario" style="width:auto;margin:0" onclick="exportarTXT()">⬇ Baixar Relatório (.txt)</button>
+      <button onclick="window.print()">🖨 Imprimir / Salvar em PDF</button>
+      <button onclick="location.reload()">↺ Jogar Novamente</button>
+    </div>
+  </div>`;
+}
+
+function conclusoes() {
+  const g = id => GameState.integridade[id] ?? 0;
+  return [
+    `Código Florestal (Lei 12.651/2012): protege as Áreas de Preservação Permanente (APPs), como encostas de morros e nascentes. Você aplicou isso na Mata Atlântica (${g('mata')}%) e nas veredas do Cerrado (${g('cerrado')}%).`,
+    `SNUC (Lei 9.985/2000): cria as Reservas Extrativistas, onde comunidades tradicionais vivem da floresta em pé (castanha, açaí), como vimos com Dona Raimunda na Amazônia (${g('amazonia')}%).`,
+    `Equilíbrio Hídrico e Clima: você viu como os "rios voadores" da Amazônia, as raízes profundas do Cerrado e o pulso de inundação do Pantanal (${g('pantanal')}%) conectam a água de todo o Brasil.`,
+    `Convivência e Adaptação: na Caatinga (${g('caatinga')}%) e no Pampa (${g('pampa')}%), o manejo correto do solo, cisternas e o controle de plantas invasoras evitam a desertificação e a perda de biodiversidade.`,
+    `Cidadania Ambiental: você firmou ${GameState.acordos.length} acordo(s). Proteger os biomas exige ciência, diálogo e respeito às pessoas que vivem em cada região.`
+  ];
+}
+
+function exportarTXT() {
+  const p = GameState.personagem, L = [];
+  const min = Math.round((Date.now() - GameState.inicioSessao) / 60000);
+  L.push('==== DOSSIÊ FINAL — GUARDIÕES DOS BIOMAS (7º ANO) ====', `Data: ${new Date().toLocaleString('pt-BR')} | Duração: ${min} min`, '',
+    `Estudante / Pesquisador(a): ${p.nome}`, `Arquétipo: ${CLASSES[p.classe].nome}`, `Origem: ${ORIGENS[p.origem].nome}`,
+    `Avatar: cabelo ${CABELOS[p.avatar.cabelo]} ${NOMES_COR[p.avatar.cor]}, ${ACESS[p.avatar.acessorio]}`,
+    `Atributos Finais: ${Object.keys(ATTR_NOMES).map(a => ATTR_NOMES[a] + ' +' + p.atributos[a]).join(' | ')}`, '', '--- INTEGRIDADE DOS BIOMAS ---');
+  BIOMAS.slice(1).forEach(b => L.push(`${b.nome.padEnd(16)} ${(GameState.integridade[b.id] ?? 0)}%`));
+  L.push('', `--- ACORDOS DE MEDIAÇÃO SOCIAL (${GameState.acordos.length}/6) ---`); GameState.acordos.forEach(a => L.push(`* ${a.bioma} - ${a.npc}: ${a.acordo}`));
+  L.push('', '--- DESCOBERTAS AVANÇADAS ---'); GameState.aprendizados.forEach(a => L.push('* ' + a));
+  L.push('', '--- MICRO-EVENTOS ---'); GameState.historicoEventos.forEach(e => L.push(`* ${e.bioma}: ${e.titulo} (${e.resultado || 'sem resposta'})`));
+  L.push('', '--- HISTÓRICO DE ROLAGENS (D20) ---'); GameState.historicoRolagens.forEach(r => L.push(`[${r.bioma} R${r.rodada}] ${r.desc}: d20=${r.nat} total=${r.total} CD=${r.cd} -> ${r.grau}`));
+  L.push('', '--- CONCLUSÕES PEDAGÓGICAS ---'); conclusoes().forEach(c => L.push('* ' + c));
+  const blob = new Blob([L.join('\n')], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `dossie_${p.nome.replace(/\W+/g, '_')}.txt`; a.click(); URL.revokeObjectURL(a.href);
+}
+
+setInterval(() => {
+  const s = Math.floor((Date.now() - GameState.inicioSessao) / 1000);
+  $('relogio').textContent = `Sessão: ${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+}, 1000);
+
+$('avatarJogo').onclick = () => {
+  $('avatarJogo').animate([{ transform: 'rotate(0)' }, { transform: 'rotate(-6deg)' }, { transform: 'rotate(6deg)' }, { transform: 'rotate(0)' }], { duration: 500 });
+};
+
+iniciarCriacao();
+</script>
+</body>
+</html>
